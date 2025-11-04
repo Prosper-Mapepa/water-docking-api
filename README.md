@@ -179,6 +179,84 @@ src/
 └── main.ts          # Application entry point
 ```
 
+## Deployment
+
+### Railway Deployment
+
+This application is configured for easy deployment on Railway.
+
+#### Quick Start
+
+1. **Install Railway CLI** (optional but recommended):
+   ```bash
+   npm i -g @railway/cli
+   railway login
+   ```
+
+2. **Deploy via Railway Dashboard**:
+   - Go to [railway.app](https://railway.app)
+   - Click "New Project" → "Deploy from GitHub repo"
+   - Connect your repository
+   - Railway will automatically detect and build the application
+
+3. **Set up PostgreSQL Database**:
+   - In Railway dashboard, click "New" → "Database" → "Add PostgreSQL"
+   - Railway will automatically provide connection variables
+
+4. **Configure Environment Variables**:
+   Add the following environment variables in Railway dashboard:
+   
+   **Required:**
+   - `DB_HOST` - PostgreSQL host (auto-provided by Railway)
+   - `DB_PORT` - PostgreSQL port (auto-provided by Railway)
+   - `DB_USERNAME` - PostgreSQL username (auto-provided by Railway)
+   - `DB_PASSWORD` - PostgreSQL password (auto-provided by Railway)
+   - `DB_DATABASE` - PostgreSQL database name (auto-provided by Railway)
+   - `JWT_SECRET` - Secret key for JWT tokens (generate a strong random string)
+   - `NODE_ENV` - Set to `production`
+
+   **Optional:**
+   - `JWT_EXPIRES_IN` - JWT token expiration (default: `24h`)
+   - `PORT` - Server port (Railway sets this automatically)
+   - `MAX_FILE_SIZE` - Maximum file upload size in bytes (default: `5242880`)
+   - `UPLOAD_PATH` - Path for file uploads (default: `./uploads`)
+
+5. **Run Database Migrations** (if needed):
+   ```bash
+   railway run npm run migration:run
+   ```
+
+#### Environment Variables Setup
+
+Railway automatically provides PostgreSQL connection variables. You can reference them in your service:
+- `${{Postgres.PGHOST}}` → `DB_HOST`
+- `${{Postgres.PGPORT}}` → `DB_PORT`
+- `${{Postgres.PGUSER}}` → `DB_USERNAME`
+- `${{Postgres.PGPASSWORD}}` → `DB_PASSWORD`
+- `${{Postgres.PGDATABASE}}` → `DB_DATABASE`
+
+**Important**: Make sure to set `NODE_ENV=production` to disable database synchronization in production.
+
+#### Deploy via CLI
+
+```bash
+# Initialize Railway project
+railway init
+
+# Link to existing project
+railway link
+
+# Deploy
+railway up
+
+# Set environment variables
+railway variables set JWT_SECRET=your-secret-key
+railway variables set NODE_ENV=production
+
+# View logs
+railway logs
+```
+
 ## License
 
 MIT
