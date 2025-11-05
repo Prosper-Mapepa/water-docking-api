@@ -71,17 +71,26 @@ async function runMigrations() {
 }
 
 async function bootstrap() {
+  console.log('🚀 Starting application bootstrap...');
+  console.log('📋 Environment check:');
+  console.log('  PORT:', process.env.PORT || 'NOT SET (will use 3001)');
+  console.log('  NODE_ENV:', process.env.NODE_ENV || 'NOT SET');
+  
   // Run migrations before starting the app
+  console.log('📦 Step 1: Running migrations...');
   try {
     await runMigrations();
+    console.log('✅ Migrations completed');
   } catch (error) {
     console.error('⚠️  Failed to run migrations, but continuing startup...');
     console.error('Error details:', error instanceof Error ? error.message : String(error));
     // Don't throw - let the app start anyway
   }
 
+  console.log('🏗️  Step 2: Creating NestJS application...');
   try {
     const app = await NestFactory.create(AppModule);
+    console.log('✅ NestJS application created');
 
     // Enable CORS with proper configuration - MUST be before any routes
     const allowedOrigins = [
@@ -157,11 +166,13 @@ async function bootstrap() {
     SwaggerModule.setup('api', app, document);
 
     const port = process.env.PORT || 3001;
+    console.log(`🌐 Step 4: Starting server on port ${port}...`);
     await app.listen(port);
-    console.log(`🚀 Application is running on port ${port}`);
+    console.log(`✅ Application is running on port ${port}`);
     console.log(`📚 Swagger documentation: http://localhost:${port}/api`);
     console.log(`🌐 Production API: https://water-docking-api-production.up.railway.app`);
     console.log(`📖 Swagger UI: https://water-docking-api-production.up.railway.app/api`);
+    console.log(`✅ Application startup complete!`);
   } catch (error) {
     console.error('❌ Failed to start application:', error);
     if (error instanceof Error) {
