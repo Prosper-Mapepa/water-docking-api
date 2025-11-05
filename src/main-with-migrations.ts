@@ -5,6 +5,16 @@ import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 
 async function runMigrations() {
+  // Log environment variables for debugging
+  console.log('🔍 Environment variables check:');
+  console.log('  PGHOST:', process.env.PGHOST || 'NOT SET');
+  console.log('  PGPORT:', process.env.PGPORT || 'NOT SET');
+  console.log('  PGUSER:', process.env.PGUSER || 'NOT SET');
+  console.log('  PGPASSWORD:', process.env.PGPASSWORD ? '***SET***' : 'NOT SET');
+  console.log('  PGDATABASE:', process.env.PGDATABASE || 'NOT SET');
+  console.log('  DATABASE_URL:', process.env.DATABASE_URL ? '***SET***' : 'NOT SET');
+  console.log('  DB_HOST:', process.env.DB_HOST || 'NOT SET');
+  
   // Create a separate DataSource instance for migrations to avoid conflicts
   const migrationDataSource = new DataSource({
     type: 'postgres',
@@ -13,13 +23,23 @@ async function runMigrations() {
     username: process.env.PGUSER || process.env.DB_USERNAME || 'postgres',
     password: process.env.PGPASSWORD || process.env.DB_PASSWORD || 'postgres',
     database: process.env.PGDATABASE || process.env.DB_DATABASE || 'water_docking',
-    url: process.env.DATABASE_URL,
+    url: process.env.DATABASE_URL, // Railway may provide DATABASE_URL
     entities: ['dist/**/*.entity{.ts,.js}'],
     migrations: ['dist/migrations/*{.ts,.js}'],
     migrationsTableName: 'migrations',
     synchronize: false,
     logging: false, // Disable logging for migrations
   });
+
+  // Log final config (without password)
+  const dbConfig = {
+    host: process.env.PGHOST || process.env.DB_HOST || 'localhost',
+    port: parseInt(process.env.PGPORT || process.env.DB_PORT || '5432'),
+    username: process.env.PGUSER || process.env.DB_USERNAME || 'postgres',
+    database: process.env.PGDATABASE || process.env.DB_DATABASE || 'water_docking',
+    hasUrl: !!process.env.DATABASE_URL,
+  };
+  console.log('📊 Migration DataSource config:', dbConfig);
 
   try {
     console.log('🚀 Running database migrations...');
