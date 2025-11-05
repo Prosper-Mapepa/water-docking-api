@@ -45,7 +45,8 @@ async function runMigrations() {
     if (migrationDataSource.isInitialized) {
       await migrationDataSource.destroy().catch(() => {});
     }
-    throw error;
+    // Don't throw - let the app continue even if migrations fail
+    console.error('Migration error details:', error instanceof Error ? error.stack : String(error));
   }
 }
 
@@ -55,23 +56,25 @@ async function bootstrap() {
     await runMigrations();
   } catch (error) {
     console.error('⚠️  Failed to run migrations, but continuing startup...');
-    console.error('You may need to run migrations manually: npm run migration:run');
+    console.error('Error details:', error instanceof Error ? error.message : String(error));
+    // Don't throw - let the app start anyway
   }
 
-  const app = await NestFactory.create(AppModule);
+  try {
+    const app = await NestFactory.create(AppModule);
 
-  // Enable CORS with proper configuration
-  const allowedOrigins = [
-    'https://water-docking.netlify.app',
-    'http://localhost:3000',
-    'http://localhost:5173',
-    'http://localhost:5174',
-    process.env.FRONTEND_URL,
-  ].filter(Boolean);
+    // Enable CORS with proper configuration
+    const allowedOrigins = [
+      'https://water-docking.netlify.app',
+      'http://localhost:3000',
+      'http://localhost:5173',
+      'http://localhost:5174',
+      process.env.FRONTEND_URL,
+    ].filter(Boolean);
 
-  console.log('🌐 Configuring CORS with allowed origins:', allowedOrigins);
+    console.log('🌐 Configuring CORS with allowed origins:', allowedOrigins);
 
-  app.enableCors({
+    app.enableCors({
     origin: (origin, callback) => {
       // Allow requests with no origin (like mobile apps or curl requests)
       if (!origin) {
@@ -105,21 +108,21 @@ async function bootstrap() {
       'Access-Control-Allow-Methods',
     ],
     exposedHeaders: ['Authorization'],
-    preflightContinue: false,
-    optionsSuccessStatus: 204,
-  });
+      preflightContinue: false,
+      optionsSuccessStatus: 204,
+    });
 
-  // Global validation pipe
-  app.useGlobalPipes(
+    // Global validation pipe
+    app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
       transform: true,
       forbidNonWhitelisted: true,
-    }),
-  );
+      }),
+    );
 
-  // Swagger documentation
-  const config = new DocumentBuilder()
+    // Swagger documentation
+    const config = new DocumentBuilder()
     .setTitle('Water Docking Management System')
     .setDescription(
       'API for managing water docking business operations including CRM and maintenance',
@@ -131,16 +134,26 @@ async function bootstrap() {
     .addTag('Feedback')
     .addTag('Assets')
     .addTag('Maintenance')
-    .addTag('Analytics')
-    .build();
+      .addTag('Analytics')
+      .build();
 
-  const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('api', app, document);
+    const document = SwaggerModule.createDocument(app, config);
+    SwaggerModule.setup('api', app, document);
 
-  const port = process.env.PORT || 3001;
-  await app.listen(port);
-  console.log(`🚀 Application is running on: http://localhost:${port}`);
-  console.log(`📚 Swagger documentation: http://localhost:${port}/api`);
+    const port = process.env.PORT || 3001;
+    await app.listen(port);
+    console.log(`🚀 Application is running on port ${port}`);
+    console.log(`📚 Swagger documentation: http://localhost:${port}/api`);
+    console.log(`🌐 Production API: https://water-docking-api-production.up.railway.app`);
+    console.log(`📖 Swagger UI: https://water-docking-api-production.up.railway.app/api`);
+  } catch (error) {
+    console.error('❌ Failed to start application:', error);
+    if (error instanceof Error) {
+      console.error('Error message:', error.message);
+      console.error('Stack trace:', error.stack);
+    }
+    process.exit(1);
+  }
 }
 bootstrap();
 
