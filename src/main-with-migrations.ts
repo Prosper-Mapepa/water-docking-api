@@ -86,17 +86,13 @@ async function bootstrap() {
     // Enable CORS with proper configuration
     const allowedOrigins = [
       'https://water-docking.netlify.app',
-      'http://localhost:3000',
-      'http://localhost:5173',
-      'http://localhost:5174',
-      process.env.FRONTEND_URL,
-    ].filter(Boolean);
+    ];
 
     console.log('🌐 Configuring CORS with allowed origins:', allowedOrigins);
 
     // Use simple array-based CORS configuration for better compatibility
     app.enableCors({
-      origin: allowedOrigins.length > 0 ? allowedOrigins : true, // Allow all if no origins specified
+      origin: allowedOrigins,
       credentials: true,
       methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS', 'HEAD'],
       allowedHeaders: [
