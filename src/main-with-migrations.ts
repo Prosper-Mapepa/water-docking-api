@@ -69,6 +69,8 @@ async function bootstrap() {
     process.env.FRONTEND_URL,
   ].filter(Boolean);
 
+  console.log('🌐 Configuring CORS with allowed origins:', allowedOrigins);
+
   app.enableCors({
     origin: (origin, callback) => {
       // Allow requests with no origin (like mobile apps or curl requests)
