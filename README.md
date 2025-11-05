@@ -52,8 +52,35 @@ cp .env.example .env
 # Create PostgreSQL database
 createdb water_docking
 
-# Run migrations (if any)
+# Run migrations to create all tables
 npm run migration:run
+```
+
+**Important**: Always use migrations in production. The `synchronize` option is disabled to prevent accidental schema changes.
+
+## Running Migrations
+
+### Local Development
+```bash
+# Run all pending migrations
+npm run migration:run
+
+# Generate a new migration (after changing entities)
+npm run migration:generate -- src/migrations/MigrationName
+
+# Revert last migration
+npm run migration:revert
+```
+
+### Railway Deployment
+Migrations need to be run manually on Railway:
+
+```bash
+# Via Railway CLI
+railway run npm run migration:run
+
+# Or set RUN_MIGRATIONS=true in Railway environment variables
+# to automatically run migrations on app startup
 ```
 
 ## Running the Application

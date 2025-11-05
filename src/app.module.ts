@@ -26,7 +26,9 @@ import { FileUploadModule } from './modules/file-upload/file-upload.module';
       password: process.env.DB_PASSWORD || 'postgres',
       database: process.env.DB_DATABASE || 'water_docking',
       entities: [__dirname + '/**/*.entity{.ts,.js}'],
-      synchronize: process.env.NODE_ENV === 'development',
+      synchronize: false, // Always use migrations - never auto-sync in production
+      migrations: [__dirname + '/../migrations/*{.ts,.js}'],
+      migrationsRun: process.env.RUN_MIGRATIONS === 'true', // Set RUN_MIGRATIONS=true to auto-run migrations
       logging: process.env.NODE_ENV === 'development',
     }),
     ScheduleModule.forRoot(),

@@ -12,7 +12,8 @@ export const AppDataSource = new DataSource({
   database: process.env.DB_DATABASE || 'water_docking',
   entities: ['dist/**/*.entity{.ts,.js}'],
   migrations: ['dist/migrations/*{.ts,.js}'],
-  synchronize: process.env.NODE_ENV === 'development',
+  migrationsTableName: 'migrations',
+  synchronize: false, // Always use migrations in production
   logging: process.env.NODE_ENV === 'development',
 });
 
