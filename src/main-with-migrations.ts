@@ -83,16 +83,35 @@ async function bootstrap() {
   try {
     const app = await NestFactory.create(AppModule);
 
-    // Enable CORS with proper configuration
+    // Enable CORS with proper configuration - MUST be before any routes
     const allowedOrigins = [
       'https://water-docking.netlify.app',
     ];
 
     console.log('🌐 Configuring CORS with allowed origins:', allowedOrigins);
+    console.log('🌐 Request origin will be validated against:', allowedOrigins);
 
     // Use simple array-based CORS configuration for better compatibility
     app.enableCors({
-      origin: allowedOrigins,
+      origin: (origin, callback) => {
+        console.log(`🔍 CORS check - Request origin: ${origin || 'none'}`);
+        console.log(`🔍 CORS check - Allowed origins:`, allowedOrigins);
+        
+        // Allow requests with no origin (like mobile apps or curl requests)
+        if (!origin) {
+          console.log('✅ CORS: Allowing request with no origin');
+          return callback(null, true);
+        }
+        
+        // Check if origin is in allowed list
+        if (allowedOrigins.includes(origin)) {
+          console.log(`✅ CORS: Allowing origin: ${origin}`);
+          return callback(null, true);
+        }
+        
+        console.log(`❌ CORS: Rejecting origin: ${origin}`);
+        callback(new Error('Not allowed by CORS'));
+      },
       credentials: true,
       methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS', 'HEAD'],
       allowedHeaders: [
@@ -106,6 +125,8 @@ async function bootstrap() {
       preflightContinue: false,
       optionsSuccessStatus: 204,
     });
+    
+    console.log('✅ CORS configuration applied successfully');
 
     // Global validation pipe
     app.useGlobalPipes(
