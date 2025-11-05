@@ -18,6 +18,17 @@ export class InitialMigration1699000000000 implements MigrationInterface {
       }
     };
 
+    // Check if table exists
+    const tableExists = async (tableName: string): Promise<boolean> => {
+      const result = await queryRunner.query(
+        `SELECT EXISTS (
+          SELECT 1 FROM information_schema.tables 
+          WHERE table_schema = 'public' AND table_name = '${tableName}'
+        )`,
+      );
+      return result[0].exists;
+    };
+
     await createEnumIfNotExists('users_role_enum', ['ADMIN', 'MANAGER', 'STAFF']);
     await createEnumIfNotExists('customers_membershiptier_enum', ['BASIC', 'SILVER', 'GOLD', 'PLATINUM']);
     await createEnumIfNotExists('docks_status_enum', ['AVAILABLE', 'OCCUPIED', 'MAINTENANCE', 'OUT_OF_SERVICE']);
@@ -32,8 +43,9 @@ export class InitialMigration1699000000000 implements MigrationInterface {
     await createEnumIfNotExists('maintenance_records_status_enum', ['SCHEDULED', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED']);
 
     // Create users table
-    await queryRunner.query(
-      `CREATE TABLE IF NOT EXISTS "users" (
+    if (!(await tableExists('users'))) {
+      await queryRunner.query(
+        `CREATE TABLE "users" (
         "id" uuid NOT NULL DEFAULT uuid_generate_v4(),
         "email" character varying NOT NULL,
         "password" character varying NOT NULL,
@@ -47,11 +59,13 @@ export class InitialMigration1699000000000 implements MigrationInterface {
         CONSTRAINT "UQ_users_email" UNIQUE ("email"),
         CONSTRAINT "PK_users" PRIMARY KEY ("id")
       )`,
-    );
+      );
+    }
 
     // Create customers table
-    await queryRunner.query(
-      `CREATE TABLE IF NOT EXISTS "customers" (
+    if (!(await tableExists('customers'))) {
+      await queryRunner.query(
+        `CREATE TABLE "customers" (
         "id" uuid NOT NULL DEFAULT uuid_generate_v4(),
         "firstName" character varying NOT NULL,
         "lastName" character varying NOT NULL,
@@ -67,11 +81,13 @@ export class InitialMigration1699000000000 implements MigrationInterface {
         CONSTRAINT "UQ_customers_email" UNIQUE ("email"),
         CONSTRAINT "PK_customers" PRIMARY KEY ("id")
       )`,
-    );
+      );
+    }
 
     // Create docks table
-    await queryRunner.query(
-      `CREATE TABLE "docks" (
+    if (!(await tableExists('docks'))) {
+      await queryRunner.query(
+        `CREATE TABLE "docks" (
         "id" uuid NOT NULL DEFAULT uuid_generate_v4(),
         "dockNumber" character varying NOT NULL,
         "name" character varying NOT NULL,
@@ -96,11 +112,13 @@ export class InitialMigration1699000000000 implements MigrationInterface {
         CONSTRAINT "UQ_docks_dockNumber" UNIQUE ("dockNumber"),
         CONSTRAINT "PK_docks" PRIMARY KEY ("id")
       )`,
-    );
+      );
+    }
 
     // Create assets table
-    await queryRunner.query(
-      `CREATE TABLE "assets" (
+    if (!(await tableExists('assets'))) {
+      await queryRunner.query(
+        `CREATE TABLE "assets" (
         "id" uuid NOT NULL DEFAULT uuid_generate_v4(),
         "name" character varying NOT NULL,
         "type" "public"."assets_type_enum" NOT NULL,
@@ -121,11 +139,13 @@ export class InitialMigration1699000000000 implements MigrationInterface {
         "updatedAt" TIMESTAMP NOT NULL DEFAULT now(),
         CONSTRAINT "PK_assets" PRIMARY KEY ("id")
       )`,
-    );
+      );
+    }
 
     // Create visits table
-    await queryRunner.query(
-      `CREATE TABLE "visits" (
+    if (!(await tableExists('visits'))) {
+      await queryRunner.query(
+        `CREATE TABLE "visits" (
         "id" uuid NOT NULL DEFAULT uuid_generate_v4(),
         "customerId" uuid NOT NULL,
         "checkInTime" TIMESTAMP NOT NULL,
@@ -140,11 +160,13 @@ export class InitialMigration1699000000000 implements MigrationInterface {
         CONSTRAINT "PK_visits" PRIMARY KEY ("id"),
         CONSTRAINT "FK_visits_customer" FOREIGN KEY ("customerId") REFERENCES "customers"("id") ON DELETE NO ACTION ON UPDATE NO ACTION
       )`,
-    );
+      );
+    }
 
     // Create service_requests table
-    await queryRunner.query(
-      `CREATE TABLE "service_requests" (
+    if (!(await tableExists('service_requests'))) {
+      await queryRunner.query(
+        `CREATE TABLE "service_requests" (
         "id" uuid NOT NULL DEFAULT uuid_generate_v4(),
         "customerId" uuid NOT NULL,
         "serviceType" character varying NOT NULL,
@@ -163,11 +185,13 @@ export class InitialMigration1699000000000 implements MigrationInterface {
         CONSTRAINT "PK_service_requests" PRIMARY KEY ("id"),
         CONSTRAINT "FK_service_requests_customer" FOREIGN KEY ("customerId") REFERENCES "customers"("id") ON DELETE NO ACTION ON UPDATE NO ACTION
       )`,
-    );
+      );
+    }
 
     // Create feedback table
-    await queryRunner.query(
-      `CREATE TABLE "feedback" (
+    if (!(await tableExists('feedback'))) {
+      await queryRunner.query(
+        `CREATE TABLE "feedback" (
         "id" uuid NOT NULL DEFAULT uuid_generate_v4(),
         "customerId" uuid NOT NULL,
         "category" "public"."feedback_category_enum" NOT NULL DEFAULT 'GENERAL',
@@ -180,11 +204,13 @@ export class InitialMigration1699000000000 implements MigrationInterface {
         CONSTRAINT "PK_feedback" PRIMARY KEY ("id"),
         CONSTRAINT "FK_feedback_customer" FOREIGN KEY ("customerId") REFERENCES "customers"("id") ON DELETE NO ACTION ON UPDATE NO ACTION
       )`,
-    );
+      );
+    }
 
     // Create maintenance_records table
-    await queryRunner.query(
-      `CREATE TABLE "maintenance_records" (
+    if (!(await tableExists('maintenance_records'))) {
+      await queryRunner.query(
+        `CREATE TABLE "maintenance_records" (
         "id" uuid NOT NULL DEFAULT uuid_generate_v4(),
         "assetId" uuid,
         "dockId" uuid,
@@ -208,24 +234,28 @@ export class InitialMigration1699000000000 implements MigrationInterface {
         CONSTRAINT "FK_maintenance_records_asset" FOREIGN KEY ("assetId") REFERENCES "assets"("id") ON DELETE NO ACTION ON UPDATE NO ACTION,
         CONSTRAINT "FK_maintenance_records_dock" FOREIGN KEY ("dockId") REFERENCES "docks"("id") ON DELETE NO ACTION ON UPDATE NO ACTION
       )`,
-    );
+      );
+    }
 
-    // Create indexes
-    await queryRunner.query(
-      `CREATE INDEX "IDX_visits_customerId" ON "visits" ("customerId")`,
-    );
-    await queryRunner.query(
-      `CREATE INDEX "IDX_service_requests_customerId" ON "service_requests" ("customerId")`,
-    );
-    await queryRunner.query(
-      `CREATE INDEX "IDX_feedback_customerId" ON "feedback" ("customerId")`,
-    );
-    await queryRunner.query(
-      `CREATE INDEX "IDX_maintenance_records_assetId" ON "maintenance_records" ("assetId")`,
-    );
-    await queryRunner.query(
-      `CREATE INDEX "IDX_maintenance_records_dockId" ON "maintenance_records" ("dockId")`,
-    );
+    // Create indexes (only if they don't exist)
+    const createIndexIfNotExists = async (indexName: string, tableName: string, columns: string) => {
+      const result = await queryRunner.query(
+        `SELECT EXISTS (
+          SELECT 1 FROM pg_indexes WHERE indexname = '${indexName}'
+        )`,
+      );
+      if (!result[0].exists) {
+        await queryRunner.query(
+          `CREATE INDEX "${indexName}" ON "${tableName}" (${columns})`,
+        );
+      }
+    };
+
+    await createIndexIfNotExists('IDX_visits_customerId', 'visits', '"customerId"');
+    await createIndexIfNotExists('IDX_service_requests_customerId', 'service_requests', '"customerId"');
+    await createIndexIfNotExists('IDX_feedback_customerId', 'feedback', '"customerId"');
+    await createIndexIfNotExists('IDX_maintenance_records_assetId', 'maintenance_records', '"assetId"');
+    await createIndexIfNotExists('IDX_maintenance_records_dockId', 'maintenance_records', '"dockId"');
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
