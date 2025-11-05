@@ -15,27 +15,9 @@ async function bootstrap() {
     process.env.FRONTEND_URL,
   ].filter(Boolean);
 
+  // Use simple array-based CORS configuration for better compatibility
   app.enableCors({
-    origin: (origin, callback) => {
-      // Allow requests with no origin (like mobile apps or curl requests)
-      if (!origin) {
-        return callback(null, true);
-      }
-      
-      // Check if origin is in allowed list
-      if (allowedOrigins.includes(origin)) {
-        return callback(null, true);
-      }
-      
-      // For development, log rejected origins
-      if (process.env.NODE_ENV === 'development') {
-        console.log(`CORS: Rejected origin: ${origin}`);
-        console.log(`CORS: Allowed origins:`, allowedOrigins);
-      }
-      
-      // Allow the request anyway for now (you can change this to reject)
-      callback(null, true);
-    },
+    origin: allowedOrigins.length > 0 ? allowedOrigins : true, // Allow all if no origins specified
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS', 'HEAD'],
     allowedHeaders: [
@@ -44,9 +26,6 @@ async function bootstrap() {
       'Accept',
       'Origin',
       'X-Requested-With',
-      'Access-Control-Allow-Origin',
-      'Access-Control-Allow-Headers',
-      'Access-Control-Allow-Methods',
     ],
     exposedHeaders: ['Authorization'],
     preflightContinue: false,
