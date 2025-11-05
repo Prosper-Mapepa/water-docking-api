@@ -231,20 +231,27 @@ This application is configured for easy deployment on Railway.
    - Railway will automatically provide connection variables
 
 4. **Configure Environment Variables**:
-   Add the following environment variables in Railway dashboard:
+   Railway automatically provides PostgreSQL connection variables. The app supports both:
    
-   **Required:**
-   - `DB_HOST` - PostgreSQL host (auto-provided by Railway)
-   - `DB_PORT` - PostgreSQL port (auto-provided by Railway)
-   - `DB_USERNAME` - PostgreSQL username (auto-provided by Railway)
-   - `DB_PASSWORD` - PostgreSQL password (auto-provided by Railway)
-   - `DB_DATABASE` - PostgreSQL database name (auto-provided by Railway)
+   **Railway's default variables** (automatically set when you add PostgreSQL):
+   - `PGHOST` - PostgreSQL host
+   - `PGPORT` - PostgreSQL port
+   - `PGUSER` - PostgreSQL username
+   - `PGPASSWORD` - PostgreSQL password
+   - `PGDATABASE` - PostgreSQL database name
+   - `DATABASE_URL` - Complete connection string (if provided, takes precedence)
+   
+   **Manual variables** (if you need to override):
+   - `DB_HOST`, `DB_PORT`, `DB_USERNAME`, `DB_PASSWORD`, `DB_DATABASE` - Alternative naming
+   
+   **Required custom variables:**
    - `JWT_SECRET` - Secret key for JWT tokens (generate a strong random string)
    - `NODE_ENV` - Set to `production`
 
    **Optional:**
    - `JWT_EXPIRES_IN` - JWT token expiration (default: `24h`)
    - `PORT` - Server port (Railway sets this automatically)
+   - `RUN_MIGRATIONS` - Set to `true` to auto-run migrations on startup
    - `MAX_FILE_SIZE` - Maximum file upload size in bytes (default: `5242880`)
    - `UPLOAD_PATH` - Path for file uploads (default: `./uploads`)
 
@@ -255,14 +262,15 @@ This application is configured for easy deployment on Railway.
 
 #### Environment Variables Setup
 
-Railway automatically provides PostgreSQL connection variables. You can reference them in your service:
-- `${{Postgres.PGHOST}}` → `DB_HOST`
-- `${{Postgres.PGPORT}}` → `DB_PORT`
-- `${{Postgres.PGUSER}}` → `DB_USERNAME`
-- `${{Postgres.PGPASSWORD}}` → `DB_PASSWORD`
-- `${{Postgres.PGDATABASE}}` → `DB_DATABASE`
+Railway automatically provides PostgreSQL connection variables when you add a PostgreSQL service. The application will automatically detect and use:
+- `PGHOST`, `PGPORT`, `PGUSER`, `PGPASSWORD`, `PGDATABASE` (Railway's default)
+- Or `DATABASE_URL` (complete connection string, takes precedence)
+- Or fallback to `DB_HOST`, `DB_PORT`, etc. if you prefer custom names
 
-**Important**: Make sure to set `NODE_ENV=production` to disable database synchronization in production.
+**Important**: 
+- Set `NODE_ENV=production` to disable database synchronization in production
+- Set `RUN_MIGRATIONS=true` to automatically run migrations on app startup (optional)
+- Make sure your PostgreSQL service is running before the app starts
 
 #### Deploy via CLI
 

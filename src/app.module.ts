@@ -20,11 +20,12 @@ import { FileUploadModule } from './modules/file-upload/file-upload.module';
     }),
     TypeOrmModule.forRoot({
       type: 'postgres',
-      host: process.env.DB_HOST || 'localhost',
-      port: parseInt(process.env.DB_PORT) || 5432,
-      username: process.env.DB_USERNAME || 'postgres',
-      password: process.env.DB_PASSWORD || 'postgres',
-      database: process.env.DB_DATABASE || 'water_docking',
+      host: process.env.PGHOST || process.env.DB_HOST || 'localhost',
+      port: parseInt(process.env.PGPORT || process.env.DB_PORT || '5432'),
+      username: process.env.PGUSER || process.env.DB_USERNAME || 'postgres',
+      password: process.env.PGPASSWORD || process.env.DB_PASSWORD || 'postgres',
+      database: process.env.PGDATABASE || process.env.DB_DATABASE || 'water_docking',
+      url: process.env.DATABASE_URL, // Railway may provide DATABASE_URL
       entities: [__dirname + '/**/*.entity{.ts,.js}'],
       synchronize: false, // Always use migrations - never auto-sync in production
       migrations: [__dirname + '/../migrations/*{.ts,.js}'],
