@@ -4,6 +4,19 @@ import { ValidationPipe } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 
+// Handle unhandled promise rejections
+process.on('unhandledRejection', (reason: any, promise: Promise<any>) => {
+  console.error('❌ Unhandled Rejection at:', promise, 'reason:', reason);
+  // Don't exit - let the app continue
+});
+
+// Handle uncaught exceptions
+process.on('uncaughtException', (error: Error) => {
+  console.error('❌ Uncaught Exception:', error);
+  console.error('Stack:', error.stack);
+  // Don't exit - let the app continue
+});
+
 async function runMigrations() {
   // Log environment variables for debugging
   console.log('🔍 Environment variables check:');
@@ -99,8 +112,15 @@ async function bootstrap() {
   }
 
   console.log('🏗️  Step 2: Creating NestJS application...');
+  let app;
   try {
-    const app = await NestFactory.create(AppModule);
+    // Add a small delay to ensure database is fully ready
+    console.log('⏳ Waiting 2 seconds for database to be fully ready...');
+    await new Promise(resolve => setTimeout(resolve, 2000));
+    
+    app = await NestFactory.create(AppModule, {
+      logger: ['error', 'warn', 'log', 'debug', 'verbose'],
+    });
     console.log('✅ NestJS application created');
 
     // Enable CORS with proper configuration - MUST be before any routes
@@ -178,20 +198,40 @@ async function bootstrap() {
 
     const port = process.env.PORT || 3001;
     console.log(`🌐 Step 4: Starting server on port ${port}...`);
-    await app.listen(port);
+    
+    // Ensure we listen on 0.0.0.0 to accept connections from Railway
+    await app.listen(port, '0.0.0.0');
+    
     console.log(`✅ Application is running on port ${port}`);
     console.log(`📚 Swagger documentation: http://localhost:${port}/api`);
     console.log(`🌐 Production API: https://water-docking-api-production.up.railway.app`);
     console.log(`📖 Swagger UI: https://water-docking-api-production.up.railway.app/api`);
     console.log(`✅ Application startup complete!`);
+    console.log(`🔍 Listening on 0.0.0.0:${port} (accessible from Railway)`);
   } catch (error) {
     console.error('❌ Failed to start application:', error);
     if (error instanceof Error) {
       console.error('Error message:', error.message);
       console.error('Stack trace:', error.stack);
     }
-    process.exit(1);
+    // Don't exit immediately - give Railway time to capture logs
+    setTimeout(() => {
+      console.error('💥 Exiting due to startup failure');
+      process.exit(1);
+    }, 5000);
   }
 }
-bootstrap();
+
+// Wrap bootstrap in try-catch to catch any top-level errors
+bootstrap().catch((error) => {
+  console.error('❌ Bootstrap failed:', error);
+  if (error instanceof Error) {
+    console.error('Error message:', error.message);
+    console.error('Stack trace:', error.stack);
+  }
+  setTimeout(() => {
+    process.exit(1);
+  }, 5000);
+});
+
 
