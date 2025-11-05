@@ -129,29 +129,10 @@ async function bootstrap() {
     ];
 
     console.log('🌐 Configuring CORS with allowed origins:', allowedOrigins);
-    console.log('🌐 Request origin will be validated against:', allowedOrigins);
 
-    // Use simple array-based CORS configuration for better compatibility
+    // Use simple array-based CORS configuration - more reliable than function callback
     app.enableCors({
-      origin: (origin, callback) => {
-        console.log(`🔍 CORS check - Request origin: ${origin || 'none'}`);
-        console.log(`🔍 CORS check - Allowed origins:`, allowedOrigins);
-        
-        // Allow requests with no origin (like mobile apps or curl requests)
-        if (!origin) {
-          console.log('✅ CORS: Allowing request with no origin');
-          return callback(null, true);
-        }
-        
-        // Check if origin is in allowed list
-        if (allowedOrigins.includes(origin)) {
-          console.log(`✅ CORS: Allowing origin: ${origin}`);
-          return callback(null, true);
-        }
-        
-        console.log(`❌ CORS: Rejecting origin: ${origin}`);
-        callback(new Error('Not allowed by CORS'));
-      },
+      origin: allowedOrigins,
       credentials: true,
       methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS', 'HEAD'],
       allowedHeaders: [
