@@ -138,7 +138,7 @@ async function bootstrap() {
 
     // Enable CORS with proper configuration - MUST be before any routes
     // Read from ENABLE_CORS environment variable (can be comma-separated)
-    const corsEnv = process.env.ENABLE_CORS || process.env.FRONTEND_URL || 'https://water-docking.netlify.app';
+    const corsEnv = process.env.ENABLE_CORS || process.env.FRONTEND_URL || 'https://water-docking-app.netlify.app';
     const allowedOrigins = corsEnv.split(',').map(origin => origin.trim()).filter(Boolean);
     
     console.log('🌐 Reading CORS from environment:', corsEnv);
