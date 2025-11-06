@@ -166,11 +166,10 @@ async function bootstrap() {
     }
 
     // Enable CORS with proper configuration - MUST be before any routes
-    // Read from ENABLE_CORS or FRONTEND_URL environment variable, fallback to default
-    const corsOrigin = process.env.ENABLE_CORS || process.env.FRONTEND_URL || 'https://water-docking-app.netlify.app';
+    // Read from FRONTEND_URL environment variable, fallback to default
+    const corsOrigin = process.env.FRONTEND_URL || 'https://water-docking-app.netlify.app';
     
     console.log('🌐 CORS Configuration:');
-    console.log('  ENABLE_CORS:', process.env.ENABLE_CORS || 'NOT SET');
     console.log('  FRONTEND_URL:', process.env.FRONTEND_URL || 'NOT SET');
     console.log('  Using origin:', corsOrigin);
     

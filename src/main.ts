@@ -7,8 +7,8 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
   // Enable CORS with proper configuration
-  // Read from ENABLE_CORS or FRONTEND_URL environment variable, fallback to default
-  const corsOrigin = process.env.ENABLE_CORS || process.env.FRONTEND_URL || 'https://water-docking-app.netlify.app';
+  // Read from FRONTEND_URL environment variable, fallback to default
+  const corsOrigin = process.env.FRONTEND_URL || 'https://water-docking-app.netlify.app';
 
   app.enableCors({
     origin: corsOrigin,
