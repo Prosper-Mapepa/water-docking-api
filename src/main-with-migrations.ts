@@ -137,10 +137,11 @@ async function bootstrap() {
     }
 
     // Enable CORS with proper configuration - MUST be before any routes
-    const allowedOrigins = [
-      'https://water-docking.netlify.app',
-    ];
-
+    // Read from ENABLE_CORS environment variable (can be comma-separated)
+    const corsEnv = process.env.ENABLE_CORS || process.env.FRONTEND_URL || 'https://water-docking.netlify.app';
+    const allowedOrigins = corsEnv.split(',').map(origin => origin.trim()).filter(Boolean);
+    
+    console.log('🌐 Reading CORS from environment:', corsEnv);
     console.log('🌐 Configuring CORS with allowed origins:', allowedOrigins);
 
     // Use simple array-based CORS configuration - more reliable than function callback
