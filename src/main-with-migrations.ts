@@ -69,6 +69,33 @@ async function runMigrations() {
     console.log('🚀 Running database migrations...');
     await migrationDataSource.initialize();
     
+    // Clean up any conflicting types that might prevent migrations table creation
+    try {
+      console.log('🧹 Cleaning up any conflicting database objects...');
+      const cleanupQuery = `
+        DO $$
+        BEGIN
+          -- Drop any conflicting 'migrations' type if it exists
+          IF EXISTS (
+            SELECT 1 FROM pg_type t
+            JOIN pg_namespace n ON n.oid = t.typnamespace
+            WHERE t.typname = 'migrations' AND n.nspname = 'public'
+          ) THEN
+            DROP TYPE IF EXISTS "public"."migrations" CASCADE;
+            RAISE NOTICE 'Dropped conflicting migrations type';
+          END IF;
+        EXCEPTION
+          WHEN OTHERS THEN
+            NULL; -- Ignore errors
+        END $$;
+      `;
+      await migrationDataSource.query(cleanupQuery);
+      console.log('✅ Cleanup completed');
+    } catch (cleanupError) {
+      console.log('⚠️  Cleanup warning (non-critical):', cleanupError instanceof Error ? cleanupError.message : String(cleanupError));
+      // Continue anyway
+    }
+    
     const migrations = await migrationDataSource.runMigrations();
     
     if (migrations.length > 0) {
