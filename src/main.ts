@@ -8,10 +8,9 @@ async function bootstrap() {
 
   // Enable CORS with proper configuration
   // Read from ENABLE_CORS environment variable, fallback to default
-  const corsOrigin = process.env.ENABLE_CORS || process.env.FRONTEND_URL || 'https://water-docking-app.netlify.app';
 
   app.enableCors({
-    origin: corsOrigin,
+    origin: process.env.ENABLE_CORS  || 'https://water-docking-app.netlify.app',
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
