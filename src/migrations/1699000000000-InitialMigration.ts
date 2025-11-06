@@ -5,16 +5,40 @@ export class InitialMigration1699000000000 implements MigrationInterface {
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     // Create enum types (only if they don't exist)
+    // Use DO block with exception handling to prevent duplicate key errors
     const createEnumIfNotExists = async (enumName: string, values: string[]) => {
-      const result = await queryRunner.query(
-        `SELECT EXISTS (
-          SELECT 1 FROM pg_type WHERE typname = '${enumName}'
-        )`,
-      );
-      if (!result[0].exists) {
-        await queryRunner.query(
-          `CREATE TYPE "public"."${enumName}" AS ENUM(${values.map(v => `'${v}'`).join(', ')})`,
+      try {
+        // Check if type exists in public schema
+        const result = await queryRunner.query(
+          `SELECT EXISTS (
+            SELECT 1 FROM pg_type t
+            JOIN pg_namespace n ON n.oid = t.typnamespace
+            WHERE t.typname = $1 AND n.nspname = 'public'
+          )`,
+          [enumName],
         );
+        
+        if (!result[0].exists) {
+          await queryRunner.query(
+            `CREATE TYPE "public"."${enumName}" AS ENUM(${values.map(v => `'${v}'`).join(', ')})`,
+          );
+        }
+      } catch (error: any) {
+        // If type already exists (race condition or corruption), ignore error
+        const errorMessage = error.message || String(error);
+        const errorCode = error.code || '';
+        
+        if (
+          errorMessage.includes('already exists') ||
+          errorMessage.includes('duplicate key') ||
+          errorCode === '42P07' ||
+          errorCode === '23505' // Unique violation
+        ) {
+          console.log(`⚠️  Enum ${enumName} already exists, skipping...`);
+          return;
+        }
+        // Re-throw other errors
+        throw error;
       }
     };
 
