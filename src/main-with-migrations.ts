@@ -137,28 +137,16 @@ async function bootstrap() {
     }
 
     // Enable CORS with proper configuration - MUST be before any routes
-    // Read from ENABLE_CORS environment variable (can be comma-separated)
-    const corsEnv = process.env.ENABLE_CORS || process.env.FRONTEND_URL || 'https://water-docking-app.netlify.app';
-    const allowedOrigins = corsEnv.split(',').map(origin => origin.trim()).filter(Boolean);
+    // Read from ENABLE_CORS environment variable, fallback to default
+    const corsOrigin = process.env.ENABLE_CORS || process.env.FRONTEND_URL || 'https://water-docking-app.netlify.app';
     
-    console.log('🌐 Reading CORS from environment:', corsEnv);
-    console.log('🌐 Configuring CORS with allowed origins:', allowedOrigins);
-
-    // Use simple array-based CORS configuration - more reliable than function callback
+    console.log('🌐 Configuring CORS with origin:', corsOrigin);
+    
     app.enableCors({
-      origin: allowedOrigins,
+      origin: corsOrigin,
       credentials: true,
-      methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS', 'HEAD'],
-      allowedHeaders: [
-        'Content-Type',
-        'Authorization',
-        'Accept',
-        'Origin',
-        'X-Requested-With',
-      ],
-      exposedHeaders: ['Authorization'],
-      preflightContinue: false,
-      optionsSuccessStatus: 204,
+      methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+      allowedHeaders: ['Content-Type', 'Authorization'],
     });
     
     console.log('✅ CORS configuration applied successfully');

@@ -7,25 +7,14 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
   // Enable CORS with proper configuration
-  // Read from ENABLE_CORS environment variable (can be comma-separated)
-  const corsEnv = process.env.ENABLE_CORS || process.env.FRONTEND_URL || 'https://water-docking-app.netlify.app';
-  const allowedOrigins = corsEnv.split(',').map(origin => origin.trim()).filter(Boolean);
+  // Read from ENABLE_CORS environment variable, fallback to default
+  const corsOrigin = process.env.ENABLE_CORS || process.env.FRONTEND_URL || 'https://water-docking-app.netlify.app';
 
-  // Use simple array-based CORS configuration for better compatibility
   app.enableCors({
-    origin: allowedOrigins,
+    origin: corsOrigin,
     credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS', 'HEAD'],
-    allowedHeaders: [
-      'Content-Type',
-      'Authorization',
-      'Accept',
-      'Origin',
-      'X-Requested-With',
-    ],
-    exposedHeaders: ['Authorization'],
-    preflightContinue: false,
-    optionsSuccessStatus: 204,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
   });
 
   // Global validation pipe
