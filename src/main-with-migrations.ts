@@ -118,22 +118,24 @@ async function bootstrap() {
     console.log('⏳ Waiting 3 seconds for database to be fully ready...');
     await new Promise(resolve => setTimeout(resolve, 3000));
     
+    console.log('🔌 Attempting to create NestJS application...');
     // Create app with error handling for database connection
     try {
       app = await NestFactory.create(AppModule, {
         logger: ['error', 'warn', 'log', 'debug', 'verbose'],
         abortOnError: false, // Don't abort on errors - let us handle them
       });
-      console.log('✅ NestJS application created');
-    } catch (dbError) {
-      console.error('⚠️  Database connection error during app creation:', dbError);
-      console.error('⚠️  Creating app without database connection...');
-      // Try to create app anyway - some modules might work without DB
-      app = await NestFactory.create(AppModule, {
-        logger: ['error', 'warn', 'log', 'debug', 'verbose'],
-        abortOnError: false,
-      });
-      console.log('✅ NestJS application created (with warnings)');
+      console.log('✅ NestJS application created successfully');
+    } catch (dbError: any) {
+      console.error('❌ Error creating NestJS application:', dbError);
+      if (dbError instanceof Error) {
+        console.error('Error message:', dbError.message);
+        console.error('Error stack:', dbError.stack);
+      }
+      console.error('⚠️  This might be a database connection issue. Trying to continue...');
+      // Don't retry - if it failed once, it will fail again
+      // Instead, log the error and try to start the app anyway
+      throw dbError; // Re-throw to be caught by outer try-catch
     }
 
     // Enable CORS with proper configuration - MUST be before any routes
