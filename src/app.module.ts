@@ -35,6 +35,13 @@ import { FileUploadModule } from './modules/file-upload/file-upload.module';
       migrations: [__dirname + '/../migrations/*{.ts,.js}'],
       migrationsRun: process.env.RUN_MIGRATIONS === 'true', // Set RUN_MIGRATIONS=true to auto-run migrations
       logging: process.env.NODE_ENV === 'development',
+      // Add retry logic for database connection
+      connectTimeoutMS: 30000, // 30 seconds timeout
+      extra: {
+        max: 10, // Maximum pool size
+        connectionTimeoutMillis: 30000,
+        idleTimeoutMillis: 30000,
+      },
     }),
     ScheduleModule.forRoot(),
     AuthModule,

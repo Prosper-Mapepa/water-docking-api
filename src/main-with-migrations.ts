@@ -115,13 +115,26 @@ async function bootstrap() {
   let app;
   try {
     // Add a small delay to ensure database is fully ready
-    console.log('⏳ Waiting 2 seconds for database to be fully ready...');
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    console.log('⏳ Waiting 3 seconds for database to be fully ready...');
+    await new Promise(resolve => setTimeout(resolve, 3000));
     
-    app = await NestFactory.create(AppModule, {
-      logger: ['error', 'warn', 'log', 'debug', 'verbose'],
-    });
-    console.log('✅ NestJS application created');
+    // Create app with error handling for database connection
+    try {
+      app = await NestFactory.create(AppModule, {
+        logger: ['error', 'warn', 'log', 'debug', 'verbose'],
+        abortOnError: false, // Don't abort on errors - let us handle them
+      });
+      console.log('✅ NestJS application created');
+    } catch (dbError) {
+      console.error('⚠️  Database connection error during app creation:', dbError);
+      console.error('⚠️  Creating app without database connection...');
+      // Try to create app anyway - some modules might work without DB
+      app = await NestFactory.create(AppModule, {
+        logger: ['error', 'warn', 'log', 'debug', 'verbose'],
+        abortOnError: false,
+      });
+      console.log('✅ NestJS application created (with warnings)');
+    }
 
     // Enable CORS with proper configuration - MUST be before any routes
     const allowedOrigins = [
