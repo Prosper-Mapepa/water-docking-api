@@ -109,6 +109,29 @@ async function runMigrations() {
       // Continue anyway - migrations will handle table creation
     }
     
+    // Check migrations table status and what's already executed
+    try {
+      const migrationsTableCheck = await migrationDataSource.query(
+        `SELECT COUNT(*) as count FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'migrations'`
+      );
+      const tableExists = migrationsTableCheck[0].count > 0;
+      console.log(`📋 Migrations table exists: ${tableExists}`);
+      
+      if (tableExists) {
+        const executedMigrations = await migrationDataSource.query(`SELECT * FROM migrations ORDER BY id DESC`);
+        console.log(`📋 Already executed migrations: ${executedMigrations.length}`);
+        executedMigrations.forEach((m: any) => {
+          console.log(`   - ${m.name} (timestamp: ${m.timestamp})`);
+        });
+      } else {
+        console.log('📋 Migrations table does not exist - will be created');
+      }
+    } catch (checkError) {
+      console.log('⚠️  Could not check migrations table:', checkError instanceof Error ? checkError.message : String(checkError));
+    }
+    
+    console.log('🚀 Executing migrations...');
+    console.log('📂 Migration files location: dist/migrations/*.js');
     const migrations = await migrationDataSource.runMigrations();
     
     if (migrations.length > 0) {
@@ -117,7 +140,11 @@ async function runMigrations() {
         console.log(`   - ${migration.name}`);
       });
     } else {
-      console.log('✅ Database is up to date - no migrations needed');
+      console.log('ℹ️  No new migrations executed');
+      console.log('   This could mean:');
+      console.log('   1. All migrations are already applied');
+      console.log('   2. No migration files were found');
+      console.log('   3. Migration files are not in the expected location');
     }
     
     await migrationDataSource.destroy();
