@@ -210,10 +210,11 @@ async function bootstrap() {
     const document = SwaggerModule.createDocument(app, config);
     SwaggerModule.setup('api', app, document);
 
-    const port = process.env.PORT || 3001;
+    // Use `PORT` provided in environment or default to 3000
+    const port = process.env.PORT || 3000;
     console.log(`🌐 Step 4: Starting server on port ${port}...`);
     
-    // Ensure we listen on 0.0.0.0 to accept connections from Railway
+    // Listen on `port` and 0.0.0.0
     await app.listen(port, '0.0.0.0');
     
     console.log(`✅ Application is running on port ${port}`);
