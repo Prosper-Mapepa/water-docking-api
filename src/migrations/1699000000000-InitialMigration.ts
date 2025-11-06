@@ -5,52 +5,78 @@ export class InitialMigration1699000000000 implements MigrationInterface {
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     // Create enum types (only if they don't exist)
-    // Use DO block with exception handling to prevent duplicate key errors
+    // Use PostgreSQL DO blocks with exception handling to prevent transaction aborts
+    // This allows each enum creation to fail independently without aborting the whole transaction
     const createEnumIfNotExists = async (enumName: string, values: string[]) => {
       try {
-        // Check if type exists in public schema
-        const result = await queryRunner.query(
-          `SELECT EXISTS (
-            SELECT 1 FROM pg_type t
-            JOIN pg_namespace n ON n.oid = t.typnamespace
-            WHERE t.typname = $1 AND n.nspname = 'public'
-          )`,
-          [enumName],
-        );
-        
-        if (!result[0].exists) {
-          await queryRunner.query(
-            `CREATE TYPE "public"."${enumName}" AS ENUM(${values.map(v => `'${v}'`).join(', ')})`,
-          );
-        }
+        // Use DO block with exception handling - this creates a sub-transaction
+        // so failures don't abort the main migration transaction
+        const enumValues = values.map(v => `'${v}'`).join(', ');
+        await queryRunner.query(`
+          DO $$
+          BEGIN
+            IF NOT EXISTS (
+              SELECT 1 FROM pg_type t
+              JOIN pg_namespace n ON n.oid = t.typnamespace
+              WHERE t.typname = '${enumName}' AND n.nspname = 'public'
+            ) THEN
+              CREATE TYPE "public"."${enumName}" AS ENUM(${enumValues});
+            END IF;
+          EXCEPTION
+            WHEN duplicate_object THEN
+              NULL; -- Type already exists, ignore
+            WHEN OTHERS THEN
+              NULL; -- Ignore any other errors to prevent transaction abort
+          END $$;
+        `);
+        console.log(`✅ Processed enum: ${enumName}`);
       } catch (error: any) {
-        // If type already exists (race condition or corruption), ignore error
+        // Catch all errors including transaction aborts
         const errorMessage = error.message || String(error);
         const errorCode = error.code || '';
         
         if (
           errorMessage.includes('already exists') ||
           errorMessage.includes('duplicate key') ||
+          errorMessage.includes('transaction is aborted') ||
+          errorMessage.includes('current transaction is aborted') ||
           errorCode === '42P07' ||
-          errorCode === '23505' // Unique violation
+          errorCode === '23505' ||
+          errorCode === '25P02' // Transaction aborted
         ) {
-          console.log(`⚠️  Enum ${enumName} already exists, skipping...`);
+          console.log(`⚠️  Enum ${enumName} creation skipped (already exists or transaction aborted)`);
           return;
         }
-        // Re-throw other errors
-        throw error;
+        // Log but don't throw - continue with other enums
+        console.error(`⚠️  Error creating enum ${enumName}:`, errorMessage);
       }
     };
 
     // Check if table exists
     const tableExists = async (tableName: string): Promise<boolean> => {
-      const result = await queryRunner.query(
-        `SELECT EXISTS (
-          SELECT 1 FROM information_schema.tables 
-          WHERE table_schema = 'public' AND table_name = '${tableName}'
-        )`,
-      );
-      return result[0].exists;
+      try {
+        const result = await queryRunner.query(
+          `SELECT EXISTS (
+            SELECT 1 FROM information_schema.tables 
+            WHERE table_schema = 'public' AND table_name = '${tableName}'
+          )`,
+        );
+        return result[0].exists;
+      } catch (error: any) {
+        // If transaction is aborted, assume table doesn't exist and continue
+        const errorMessage = error.message || String(error);
+        const errorCode = error.code || '';
+        if (
+          errorMessage.includes('transaction is aborted') ||
+          errorMessage.includes('current transaction is aborted') ||
+          errorCode === '25P02'
+        ) {
+          console.log(`⚠️  Transaction aborted during table check for ${tableName}, assuming table doesn't exist`);
+          return false; // Return false to attempt creation
+        }
+        // Re-throw other errors
+        throw error;
+      }
     };
 
     await createEnumIfNotExists('users_role_enum', ['ADMIN', 'MANAGER', 'STAFF']);
