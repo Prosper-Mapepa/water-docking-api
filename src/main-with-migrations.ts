@@ -69,13 +69,13 @@ async function runMigrations() {
     console.log('🚀 Running database migrations...');
     await migrationDataSource.initialize();
     
-    // Clean up any conflicting types that might prevent migrations table creation
+    // Clean up any conflicting types, tables, or sequences that might prevent migrations table creation
     try {
       console.log('🧹 Cleaning up any conflicting database objects...');
       const cleanupQuery = `
         DO $$
         BEGIN
-          -- Drop any conflicting 'migrations' type if it exists
+          -- Drop any conflicting 'migrations' type if it exists (shouldn't exist, but handles corruption)
           IF EXISTS (
             SELECT 1 FROM pg_type t
             JOIN pg_namespace n ON n.oid = t.typnamespace
@@ -84,16 +84,29 @@ async function runMigrations() {
             DROP TYPE IF EXISTS "public"."migrations" CASCADE;
             RAISE NOTICE 'Dropped conflicting migrations type';
           END IF;
+          
+          -- Check if migrations table exists but sequence is missing or corrupted
+          -- Only drop if table doesn't exist properly (missing sequence indicates partial creation)
+          IF EXISTS (
+            SELECT 1 FROM information_schema.tables 
+            WHERE table_schema = 'public' AND table_name = 'migrations'
+          ) AND NOT EXISTS (
+            SELECT 1 FROM pg_sequences WHERE schemaname = 'public' AND sequencename = 'migrations_id_seq'
+          ) THEN
+            -- Table exists but sequence is missing - drop table to recreate cleanly
+            DROP TABLE IF EXISTS migrations CASCADE;
+            RAISE NOTICE 'Dropped migrations table with missing sequence';
+          END IF;
         EXCEPTION
           WHEN OTHERS THEN
             NULL; -- Ignore errors
         END $$;
       `;
       await migrationDataSource.query(cleanupQuery);
-      console.log('✅ Cleanup completed');
+      console.log('✅ Cleanup completed - removed any conflicting migrations objects');
     } catch (cleanupError) {
       console.log('⚠️  Cleanup warning (non-critical):', cleanupError instanceof Error ? cleanupError.message : String(cleanupError));
-      // Continue anyway
+      // Continue anyway - migrations will handle table creation
     }
     
     const migrations = await migrationDataSource.runMigrations();
