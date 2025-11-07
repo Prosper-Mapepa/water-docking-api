@@ -1,6 +1,8 @@
-import { AppDataSource } from '../config/database.config';
+import { createAppDataSource } from '../config/database.config';
 
 async function runMigrations() {
+  const dataSource = createAppDataSource();
+
   try {
     console.log('🚀 Initializing database connection...');
     console.log('Database config:', {
@@ -10,12 +12,11 @@ async function runMigrations() {
       username: process.env.PGUSER || process.env.DB_USERNAME || 'postgres',
       hasUrl: !!process.env.DATABASE_URL,
     });
-    
-    await AppDataSource.initialize();
+    await dataSource.initialize();
     console.log('✅ Database connection established');
     
     console.log('📦 Running migrations...');
-    const migrations = await AppDataSource.runMigrations();
+    const migrations = await dataSource.runMigrations();
     
     if (migrations.length > 0) {
       console.log(`✅ Successfully ran ${migrations.length} migration(s):`);
@@ -26,7 +27,7 @@ async function runMigrations() {
       console.log('✅ No pending migrations - database is up to date');
     }
     
-    await AppDataSource.destroy();
+    await dataSource.destroy();
     process.exit(0);
   } catch (error) {
     console.error('❌ Migration failed:', error);
@@ -34,7 +35,7 @@ async function runMigrations() {
       console.error('Error message:', error.message);
       console.error('Stack:', error.stack);
     }
-    await AppDataSource.destroy().catch(() => {});
+    await dataSource.destroy().catch(() => {});
     process.exit(1);
   }
 }
